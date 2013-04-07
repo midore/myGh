@@ -1,0 +1,63 @@
+module MyGhBlog
+  module Conf
+    def count_entry_index
+      '5'
+    end
+    def hostname
+      # 'host name'
+      'midore.github.io'
+    end
+    def publicdir
+      # '/path/to/my-github-io-repogitory'
+    end
+    def subdir
+      'blog'
+    end
+    def datadir
+      #'/path/to/data'
+    end
+    def tpldir
+      #'/path/to/tmp'
+    end
+    def tag_base
+      "http://" + hostname
+    end
+    #---------------------------------
+    def draftdir
+      File.join(datadir, 'draft')
+    end
+    def postdir
+      File.join(datadir, 'post')
+    end
+    def trashdir
+      File.join(datadir, 'trash')
+    end
+    def tplhtml
+      File.join(tpldir, 'tpl.html')
+    end
+    def uri_host_blog
+      File.join(hostname, subdir)
+    end
+    def dir_local_blog
+      File.join(publicdir, subdir)
+    end
+    def page_index
+      File.join(dir_local_blog, 'blogindex.html')
+    end
+    def page_category
+      File.join(dir_local_blog, 'categoryindex.html')
+    end
+    def page_archive
+      File.join(dir_local_blog, 'archiveindex.html')
+    end
+    def dir_archive
+      File.join(dir_local_blog, 'archives')
+    end
+    def dir_category
+      File.join(dir_local_blog, 'category')
+    end
+  end
+end
+
+$MYGHBLOG = MyGhBlog::Conf
+
