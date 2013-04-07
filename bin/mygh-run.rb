@@ -121,9 +121,9 @@ module MyGhBlog
   end
   class CheckConf
     def initialize
-      @err  = String.new
+      @err = String.new
       @hostname = hostname
-      @datad  = datadir
+      @datad = datadir
       @pubd = publicdir
       @tpl = tpldir
       #
@@ -132,7 +132,7 @@ module MyGhBlog
       @trash = trashdir
       @tplh = tplhtml
       @dlocab = dir_local_blog
-      @dar =  dir_archive
+      @dar = dir_archive
       @dca = dir_category
     end
     def base
