@@ -17,7 +17,7 @@ module MyGhBlog
       #@base = tag_base
       @yk, @ya = nil, Array.new
       @hash_word, @hash_wordindex, @hash_year = Hash.new, Hash.new, Hash.new
-      @hash_entry = Array.new
+      @arr_entry = Array.new
       set_base
     end
     def setup_category(title, h2)
@@ -40,8 +40,8 @@ module MyGhBlog
       get_title.text = str
     end
     def set_base
-      e = get_base
-      e.add_attributes({"href"=>@base})
+      return nil unless @base
+      get_base.add_attributes({"href"=>@base})
     end
     def get_title
       @doc.elements['html/head/title']
@@ -82,18 +82,18 @@ module MyGhBlog
       return ep
     end
     def set_hash
-      @hash_entry = Array.new
+      @arr_entry = Array.new
       Find.find(@dir).entries.sort.reverse.each{|f|
         next unless File.file?(f)
         next unless /\d{4}-\d{2}-\d{2}T/.match(f)
         next unless File.extname(f) == '.txt'
         e = PublicEntry.new(f).base
         next unless File.exist?(e.path_html)
-        @hash_entry.push(e)
-        set_hash_sub(e, f)
+        @arr_entry.push(e)
+        set_arr_sub(e, f)
       }
     end
-    def set_hash_sub(e, f)
+    def set_arr_sub(e, f)
       link = LinkToEntry.new(e, @dir_ca)
       ep = link.ep
       set_year_h(f, ep)
@@ -124,7 +124,6 @@ module MyGhBlog
     def entry_page(e)
       set_title(e.title)
       @div_e.add_element(entry_div(e))
-      
       return @doc
     end
   end
@@ -139,7 +138,7 @@ module MyGhBlog
     end
     private
     def data_index_page
-      @hash_entry.each{|e|
+      @arr_entry.each{|e|
         @div_e.add_text("\n\n")
         @div_e.add_element(entry_div(e))
         @div_e.add_text("\n\n")
@@ -240,8 +239,11 @@ module MyGhBlog
       @path = File.join(dir_archive, "#{k}.html")
       @page = Page.new
       @page.setup_archives("BlogArchives","Year: #{k}")
-      v.each{|x| @page.div_e.add_element(x)
-        @page.div_e.add_text("\n")}
+      v.each{|x|
+        @page.div_e.add_element(x)
+        @page.div_e.add_text("\n")
+      }
+      @data = @page.doc
       save
     end
   end
