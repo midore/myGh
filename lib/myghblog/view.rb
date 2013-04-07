@@ -3,7 +3,7 @@
 #----------------------------------------------------------------
 module MyGhBlog
   class View
-    def initialize(opt)
+    def initialize(opt=nil)
       en = Entry.new()
       @opt = opt
       @dir = en.draftdir unless opt
