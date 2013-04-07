@@ -17,7 +17,7 @@ module MyGhBlog
       }
       print "\nText_File_path:\s", @path_text, "\n"
       return nil unless @uri
-      path_html = fh = @uri.gsub(hostname, tag_base)
+      path_html = fh = @uri.gsub(hostname, publicdir)
       return print "Warning: Not exit #{fh}\n" unless File.exist?(fh)
       print "HTML_File_Path:\s", path_html, "\n"
     end
@@ -205,29 +205,22 @@ module MyGhBlog
     def view_xhtml
       unless @uri
         set_all
+        p @path_html
         return print to_xml
       end
-      p path_html = @uri.gsub(hostname, publicdir)
-      print IO.read(path_html) if File.exist?(path_html)
-      exit
-      #if @uri
-      #  @path_html = @uri.gsub(hostname, tag_base) if @uri
-      #  set_uri_rel
-      #else
-      #  set_all
-      #end
-      #print to_xml
-      #print "Posted Path: #{@path_html}\n" if File.exist?(@path_html)
+      path_html = @uri.gsub(hostname, publicdir)
+      return print "Not Exist #{path_html}\n" unless File.exist?(path_html)
+      print IO.read(path_html)
+      print "\n\nHTML File Path: #{path_html}\n"
     end
   end
   class DeleteEntry < Entry
     def base
       read_f
       remove(@path_text)
-      @path_html = @uri.gsub(hostname, tag_base) if @uri
-      return nil unless @path_html
-      return nil unless File.exist?(@path_html)
-      remove(@path_html)
+      path_html = @uri.gsub(hostname, publicdir) if @uri
+      return nil unless File.exist?(path_html)
+      remove(path_html)
     end
     def remove(path)
       return nil unless path
@@ -247,7 +240,6 @@ module MyGhBlog
     def base
       read_f
       set_uri_rel
-      #@path_html = @uri.gsub(hostname, tag_base)
       @path_html = @uri.gsub(hostname, publicdir)
       return self
     end
@@ -294,7 +286,8 @@ module MyGhBlog
     def base
       read_f
       check_error
-      @path_html = @uri.gsub(hostname, tag_base) if @uri
+      @path_html = @uri.gsub(hostname, publicdir)
+      return print "Not Exist #{@path_html}\n" unless File.exist?(@path_html)
       @updated = Time.now.iso8601.to_s
       set_uri_rel
       set_data_html
@@ -303,21 +296,6 @@ module MyGhBlog
   end
   class ImportEntryDraft < PostEntry
     attr_reader :title, :published, :uri_rel, :content, :category, :uri, :url,:edit_id
-    def draft_entry
-      set_base
-      #set_data_html
-      #set_data_text
-      #exit unless save_html
-      #exit unless save_text
-    end
-    def set_base
-      set_ins
-      p @fn
-      #set_control
-      #set_path_text
-      #set_path_uri
-      #set_path_html
-    end
     def set_ins
       @updated = Time.now
       @t = Time.parse(@published)
@@ -361,10 +339,3 @@ module MyGhBlog
   end
   #end of module
 end
-
-      #p @dir_ca
-      #print "\n\n"
-      #print "TEXT FILE:\t", @path_text, "\n"
-      #print "HTML FILE:\t", @path_html, "\n" if @uri
-      #print "URI:\t\t", @uri, "\n" if @path_html
-      #print "\n"
