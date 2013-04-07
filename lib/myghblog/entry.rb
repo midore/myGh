@@ -246,18 +246,18 @@ module MyGhBlog
   end
   class PostEntry < Entry
     attr_reader :title, :published, :uri_rel, :content, :category
-    def base
-      read_f
-      check_error
-      set_all
-      set_post_entry
-    end
     def post
       base
       exit unless save_html
       exit unless save_text
     end
     private
+    def base
+      read_f
+      check_error
+      set_all
+      set_post_entry
+    end
     def check_error
       msg = "Error: content is empty.\n#{@path_text}\n"
       (print msg; exit) if @content.empty?
@@ -283,6 +283,12 @@ module MyGhBlog
     end
   end
   class UpdateEntry < PostEntry
+    def update
+      base
+      exit unless save_html
+      exit unless save_text
+    end
+    private
     def base
       read_f
       check_error
@@ -290,8 +296,8 @@ module MyGhBlog
       return print "Not Exist #{@path_html}\n" unless File.exist?(@path_html)
       @updated = Time.now.iso8601.to_s
       set_uri_rel
+      set_data_text
       set_data_html
-      save_html
     end
   end
   class ImportEntryDraft < PostEntry
