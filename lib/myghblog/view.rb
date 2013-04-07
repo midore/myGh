@@ -116,14 +116,10 @@ module MyGhBlog
       e = PostEntry.new(@text_path)
       e.post
       file_delete
-      #e.update_page_index
-      #print "Posted Entry.\n\n"
     end
     def file_update
       e = UpdateEntry.new(@text_path)
-      e.base
-      #e.update_page_index
-      #print "Updated Entry.\n\n"
+      e.update
     end
     def file_open
       begin
