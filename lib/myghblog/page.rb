@@ -14,11 +14,9 @@ module MyGhBlog
       @dir = postdir
       @dir_ca = dir_category.gsub(publicdir, '.')
       @dir_ar = dir_archive.gsub(publicdir, '.')
-      #@base = tag_base
       @yk, @ya = nil, Array.new
       @hash_word, @hash_wordindex, @hash_year = Hash.new, Hash.new, Hash.new
       @arr_entry = Array.new
-      set_base
     end
     def setup_category(title, h2)
       set_title(title)
@@ -40,8 +38,15 @@ module MyGhBlog
       get_title.text = str
     end
     def set_base
-      return nil unless @base
-      get_base.add_attributes({"href"=>@base})
+      return nil if get_base.nil?
+      return nil if get_base.attributes.empty?
+      # 2013-04-08
+      # base tag use <base href=xxxx /> of file "tpl.html".
+      # stopping use "def tag_base" of file "mygh-conf"
+      # if base.attributes ( of file "tpl.html") is empty (== <base />) then,
+      # base tag keep <base />.
+      # if want to use tag_base, tag_base exist in file "mygh-conf"
+      ##get_base.add_attributes({"href"=>tag_base})
     end
     def get_title
       @doc.elements['html/head/title']
@@ -111,7 +116,7 @@ module MyGhBlog
       @hash_word[k].push(ep)
     end
     def set_year_h(f, x)
-      yk =  f.match(/\d{4}-\d{2}/)[0]
+      #yk =  f.match(/\d{4}-\d{2}/)[0]
       yk =  f.match(/\d{4}/)[0]
       unless @yk == yk
         @yk, @ya = yk, Array.new
@@ -123,6 +128,7 @@ module MyGhBlog
   class PageEntry < Page
     def entry_page(e)
       set_title(e.title)
+      set_n
       @div_e.add_element(entry_div(e))
       return @doc
     end
@@ -141,10 +147,10 @@ module MyGhBlog
       @arr_entry.each{|e|
         @div_e.add_text("\n\n")
         @div_e.add_element(entry_div(e))
-        @div_e.add_text("\n\n")
         @n += 1
         break if @n+1 > count_entry_index.to_i
       }
+      @div_e.add_text("\n\n")
       return @doc
     end
   end
@@ -173,6 +179,7 @@ module MyGhBlog
         set_index_ea(k, v)
         @ep.add_text("\s|\s")
       }
+      return @doc unless @ep
       @div_e.add_element(@ep)
       @div_e.add_text("\n\t")
       return @doc
