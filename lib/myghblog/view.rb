@@ -98,15 +98,23 @@ module MyGhBlog
         printf "\s%-3s\t%-30s\n" % ary
       }
     end
+    def info_path_html(opt=nil)
+      return unless fh = @obj.path_html
+      return print "Not exit #{fh}\n" unless File.exist?(fh)
+      print IO.read(fh) if opt
+      print "HTML_File_Path:\s", fh, "\n"
+    end
     def file_detail
-      @obj.detail
-      return nil unless @obj.uri
+      @obj.view_detail
+      print "\nText_File_path:\s", @text_path, "\n"
+      info_path_html
     end
     def file_delete
       DeleteEntry.new(@text_path).base
     end
     def file_doc
       @obj.view_xhtml
+      info_path_html("doc")
     end
     def file_text
       print @obj.to_str
