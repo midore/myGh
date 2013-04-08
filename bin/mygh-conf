@@ -19,9 +19,9 @@ module MyGhBlog
     def tpldir
       #'/path/to/tmp'
     end
-    def tag_base
-      "http://" + hostname
-    end
+    #def tag_base
+    #  'http://' + hostname + '/'
+    #end
     #---------------------------------
     def draftdir
       File.join(datadir, 'draft')
