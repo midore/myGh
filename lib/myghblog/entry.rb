@@ -15,11 +15,6 @@ module MyGhBlog
         next unless v = instance_variable_get(i)
         print i, ":\s\t", v.to_s, "\n"
       }
-      print "\nText_File_path:\s", @path_text, "\n"
-      return nil unless @uri
-      path_html = fh = @uri.gsub(hostname, publicdir)
-      return print "Warning: Not exit #{fh}\n" unless File.exist?(fh)
-      print "HTML_File_Path:\s", path_html, "\n"
     end
     def update_page_index
       PageIndex.new.base
@@ -32,14 +27,15 @@ module MyGhBlog
       return nil unless @uri_rel
       PageEntry.new().entry_page(self)
     end
-    def set_all
-      set_base_time
-      set_pub_date
-      set_edit_id
-      set_html_fname
-      set_path_html
-      set_uri
-      set_uri_rel
+    private
+    def check_error
+      msg = "Error: content is empty.\n#{@path_text}\n"
+      (print msg; exit) if @content.empty?
+    end
+    def set_base_time
+      @t = Time.parse(@published) if @published
+      @t ||= Time.now
+      @year, @month, @day = @t.strftime("%Y,%m,%d").split(',')
     end
     def set_pub_date
       @updated = Time.now.iso8601.to_s
@@ -65,6 +61,7 @@ module MyGhBlog
        n = Dir.entries(dir).select{|f| /#{str}/.match(f)}.size
        @fn = "#{str}-#{n+1}.html"
       end
+      return @fn
     end
     def set_uri
       @uri = File.join(@uri_blog, @year, @month, @fn)
@@ -75,12 +72,10 @@ module MyGhBlog
     def set_path_html
       @path_html = File.join(@dir_blog, @year, @month, @fn)
     end
-    def set_base_time
-      @t = Time.parse(@published) if @published
-      @t ||= Time.now
-      @year, @month, @day = @t.strftime("%Y,%m,%d").split(',')
+    def get_path_html
+      return nil unless @uri
+      @uri.gsub(hostname, publicdir)
     end
-    private
     def read_f
       m = IO.read(@path_text).split(/^--content\n/)
       meta, @content = m[0], m[1..m.size].join("").strip
@@ -175,7 +170,7 @@ module MyGhBlog
     end
   end
   class ViewEntry < Entry
-    attr_reader  :title, :published, :content, :category, :uri, :uri_rel, :posted, :edited
+    attr_reader  :path_html, :title, :published, :content, :category, :uri, :uri_rel, :posted, :edited
     def base
       read_f
     end
@@ -196,29 +191,35 @@ module MyGhBlog
       (@uri.nil?) ? @posted = '-' : @posted = '+'
       # updated?
       mt, ut  = File.mtime(@path_text), Time.parse(@updated.to_s) if @updated
-      # when x is '-', need to update entry.
+      # when x is '-', entry need to update.
       (mt == ut) ? x = '+' : x = '-'
       # edited? # edited file after posted.  entry is '-'
       (x == '+' && @posted == '+') ? @edited = '+' :  @edited = '-'
       return [@posted, @edited]
     end
     def view_xhtml
+      @path_html = get_path_html
       unless @uri
-        set_all
-        p @path_html
+        set_base_time
+        set_pub_date
+        set_html_fname
+        set_uri
+        set_uri_rel
+        p self;exit
         return print to_xml
       end
-      path_html = @uri.gsub(hostname, publicdir)
-      return print "Not Exist #{path_html}\n" unless File.exist?(path_html)
-      print IO.read(path_html)
-      print "\n\nHTML File Path: #{path_html}\n"
+    end
+    def view_detail
+      @path_html = get_path_html
+      detail
     end
   end
   class DeleteEntry < Entry
     def base
       read_f
       remove(@path_text)
-      path_html = @uri.gsub(hostname, publicdir) if @uri
+      path_html = get_path_html
+      return nil unless path_html
       return nil unless File.exist?(path_html)
       remove(path_html)
     end
@@ -240,7 +241,7 @@ module MyGhBlog
     def base
       read_f
       set_uri_rel
-      @path_html = @uri.gsub(hostname, publicdir)
+      @path_html = get_path_html
       return self
     end
   end
@@ -255,18 +256,16 @@ module MyGhBlog
     def base
       read_f
       check_error
-      set_all
-      set_post_entry
-    end
-    def check_error
-      msg = "Error: content is empty.\n#{@path_text}\n"
-      (print msg; exit) if @content.empty?
-    end
-    def set_post_entry
+      set_base_time
+      set_pub_date
+      set_edit_id
+      set_html_fname
+      set_path_html
+      set_uri
+      set_uri_rel
+      # 
       set_control
       set_path_text
-      set_data_text
-      set_data_html
     end
     def set_control
       @control = @hostname if @control == 'yes'
@@ -274,12 +273,6 @@ module MyGhBlog
     def set_path_text
       str = @t.strftime("%Y-%m-%dT%H-%M-%S")
       @path_text = File.join(postdir, "#{@year}-#{@month}", "#{str}.txt")
-    end
-    def set_data_html
-      @data_html = to_xml
-    end
-    def set_data_text
-      @data_text = to_str
     end
   end
   class UpdateEntry < PostEntry
@@ -292,14 +285,31 @@ module MyGhBlog
     def base
       read_f
       check_error
-      @path_html = @uri.gsub(hostname, publicdir)
+      return nil unless @path_html = get_path_html
       return print "Not Exist #{@path_html}\n" unless File.exist?(@path_html)
       @updated = Time.now.iso8601.to_s
       set_uri_rel
-      set_data_text
-      set_data_html
     end
   end
+  class EntryTextData
+    def initialize(inskeys, e)
+      @str = String.new
+      @e, @inskeys = e, inskeys
+    end
+    def to_s
+      @inskeys.each{|k,v|
+        i = "@#{k}".to_sym
+        next unless @e.instance_variable_defined?(i)
+        v = @e.instance_variable_get(i)
+        @str << "--#{k}\n#{v}\n" unless v.nil?
+      }
+      return @str
+    end
+  end
+  #end of module
+end
+
+=begin
   class ImportEntryDraft < PostEntry
     attr_reader :title, :published, :uri_rel, :content, :category, :uri, :url,:edit_id
     def set_ins
@@ -328,20 +338,4 @@ module MyGhBlog
       @path_text = File.join(postdir, "#{@year}-#{@month}", "#{str}.txt")
     end
   end
-  class EntryTextData
-    def initialize(inskeys, e)
-      @str = String.new
-      @e, @inskeys = e, inskeys
-    end
-    def to_s
-      @inskeys.each{|k,v|
-        i = "@#{k}".to_sym
-        next unless @e.instance_variable_defined?(i)
-        v = @e.instance_variable_get(i)
-        @str << "--#{k}\n#{v}\n" unless v.nil?
-      }
-      return @str
-    end
-  end
-  #end of module
-end
+=end
