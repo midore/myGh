@@ -169,6 +169,10 @@ module MyGhBlog
   end
   class Draft < Entry
     def newentry
+      if @path_text
+        read_f
+        @content = IO.read(@path_text) if @content.empty?
+      end
       set_pubdata
       set_path_text
       save_text

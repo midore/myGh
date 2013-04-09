@@ -23,7 +23,7 @@ module MyGhBlog
         next unless File.extname(f) == '.txt'
         entry(f)
         @n += 1
-        #break if @n > 10
+        break if @n > 20
       }
       return print "Not exist entry.\n" if @ary.size < 1
       @no = select_no
