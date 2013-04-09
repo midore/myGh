@@ -34,18 +34,17 @@ module MyGhBlog
     def set_n
       @div_e.add_text("\n")
     end
+    def set_nn
+      @div_e.add_text("\n\n")
+    end
     def set_title(str)
       get_title.text = str
     end
     def set_base
       return nil if get_base.nil?
       return nil if get_base.attributes.empty?
-      # 2013-04-08
       # base tag use <base href=xxxx /> of file "tpl.html".
       # stopping use "def tag_base" of file "mygh-conf"
-      # if base.attributes ( of file "tpl.html") is empty (== <base />) then,
-      # base tag keep <base />.
-      # if want to use tag_base, tag_base exist in file "mygh-conf"
       ##get_base.add_attributes({"href"=>tag_base})
     end
     def get_title
@@ -87,202 +86,181 @@ module MyGhBlog
       return ep
     end
     def set_hash
-      @arr_entry = Array.new
       Find.find(@dir).entries.sort.reverse.each{|f|
         next unless File.file?(f)
         next unless /\d{4}-\d{2}-\d{2}T/.match(f)
         next unless File.extname(f) == '.txt'
-        e = PublicEntry.new(f).base
-        next unless File.exist?(e.path_html)
-        @arr_entry.push(e)
-        set_arr_sub(e, f)
+        next unless File.exist?(PublicEntry.new(f).base.path_html)
+        @arr_entry.push(f)
+        set_arr_sub(f)
       }
     end
-    def set_arr_sub(e, f)
-      link = LinkToEntry.new(e, @dir_ca)
-      ep = link.ep
+    def set_arr_sub(f)
+      e = PublicEntry.new(f).base
+      ep = LinkToEntry.new(e, @dir_ca).ep
       set_year_h(f, ep)
-      return ep unless link.ary
-      link.ary.each{|k|
-        set_word_h(k, ep)
-        set_wordindex_h(k)
+      h = e.hash_category
+      return ep unless h
+      h.each{|k,v|
+        set_word_h(k, v, ep)
+        set_wordindex_h(k,v)
       }
     end
-    def set_wordindex_h(k)
-      @hash_wordindex[k] ||= "#{@dir_ca}/#{k}.html"
+    def set_wordindex_h(k,v)
+      @hash_wordindex[k] ||= "#{@dir_ca}/#{v}.html"
     end
-    def set_word_h(k, ep)
+    def set_word_h(k, v, ep)
       @hash_word[k] = Array.new unless @hash_word[k]
       @hash_word[k].push(ep)
     end
-    def set_year_h(f, x)
-      #yk =  f.match(/\d{4}-\d{2}/)[0]
+    def set_year_h(f, ep)
       yk =  f.match(/\d{4}/)[0]
       unless @yk == yk
         @yk, @ya = yk, Array.new
       end
-      @ya.push(x)
+      @ya.push(ep)
       @hash_year[@yk] = @ya
     end
   end
   class PageEntry < Page
     def entry_page(e)
       set_title(e.title)
-      set_n
+      set_nn
       @div_e.add_element(entry_div(e))
+      set_nn
       return @doc
     end
   end
-  class PageIndex < Page
-    def base
+  class IndexAll < Page
+    def all
+      set_hash
+      index_blog
+      index_year
+      index_word
+      page_word
+      page_year
+    end
+    def category
+      set_hash
+      index_word
+      page_word
+    end
+    def archives
+      set_hash
+      index_year
+      page_year
+    end
+    def index_blog
+      set_hash if @arr_entry.empty?
       @path = @page_index
       set_title("Blog")
-      set_hash
-      @data = data_index_page
-      @n = 0
-      save
-    end
-    private
-    def data_index_page
-      @arr_entry.each{|e|
+      n = 0
+      @arr_entry.each{|f|
+        e = PublicEntry.new(f).base
         @div_e.add_text("\n\n")
         @div_e.add_element(entry_div(e))
-        @n += 1
-        break if @n+1 > count_entry_index.to_i
+        n += 1
+        break if n+1 > count_entry_index.to_i
       }
       @div_e.add_text("\n\n")
-      return @doc
+      @data = @doc
+      save
     end
-  end
-  class CategoryIndex < Page
-    def base
+    def index_word
+      set_hash if @hash_wordindex.empty?
+      @doc = REXML::Document.new(IO.read(tplhtml))
       @path = @page_category
       setup_category("Category","Blog Category")
-      set_hash
-      @data = data_category_index
-      save
-    end
-    private
-    def data_category_index
       @ep, @kw = nil, nil
+      n = 0
       @hash_wordindex.sort.each{|k,v|
-        kw = k[0]
-        unless @kw == kw
-          if @ep
-            @div_e.add_text("\t")
-            @div_e.add_element(@ep)
-            @div_e.add_text("\n\t")
-          end
-          @ep = set_index_ep
-          @kw = kw
+        unless @kw == k[0]
+          @ep = REXML::Element.new("p").add_text("\s|\s")
+          @div_e.add_element(@ep)
+          set_n
+          @kw = k[0]
+          n += 1
         end
-        set_index_ea(k, v)
+        set_index_category_ea(k, v)
         @ep.add_text("\s|\s")
       }
-      return @doc unless @ep
-      @div_e.add_element(@ep)
-      @div_e.add_text("\n\t")
-      return @doc
-    end
-    def set_index_ep
-      ep = REXML::Element.new("p")
-      ep.add_text("\s|\s")
-      return ep
-    end
-    def set_index_ea(k, v)
-      ea = @ep.add_element("a")
-      ea.add_attributes("href"=>v)
-      ea.text = "#{k.capitalize}"
-      return ea
-    end
-  end
-  class ArchivesIndex < Page
-    def base
-      @path = @page_archive
-      setup_archives("Archives","Blog Archives")
-      set_hash
-      @data = data_archives_index
+      @data = @doc
       save
     end
-    private
-    def data_archives_index
+    def index_year
+      set_hash if @hash_year.empty?
+      @doc = REXML::Document.new(IO.read(tplhtml))
+      @path = @page_archive
+      setup_archives("Archives","Blog Archives")
       @hash_year.keys.each{|k|
-        ep = set_year_index_ep(k)
+        ep = set_index_year_ep(k)
         @div_e.add_text("\t")
         @div_e.add_element(ep)
       }
-      return @doc
+      @data = @doc
+      save
     end
-    def set_year_index_ep(k)
+    def page_word
+      set_hash if @hash_word.empty?
+      @hash_word.each{|k,v|
+        @path = File.join(dir_category, "#{k.downcase}.html")
+        @page = Page.new
+        @page.setup_category("BlogCategory", "Word: #{k}")
+        v.each{|ep|
+          @page.div_e.add_element(ep)
+          @page.div_e.add_text("\n")
+        }
+        @data = @page.doc
+        save
+      }
+    end
+    def page_year
+      set_hash if @hash_year.empty?
+      @hash_year.each{|k,v|
+        @path = File.join(dir_archive, "#{k}.html")
+        @page = Page.new
+        @page.setup_archives("BlogArchives","Year: #{k}")
+        v.each{|x|
+          @page.div_e.add_element(x)
+          @page.div_e.add_text("\n")
+        }
+        @data = @page.doc
+        save
+      }
+    end
+    def set_index_year_ep(k)
       u = File.join(@dir_ar, "#{k}.html")
       new_plink(u, k.capitalize)
     end
-  end
-  class Category < Page
-    def base
-      set_hash
-      @hash_word.each{|k,v| data_category(k, v)}
-    end
-    private
-    def data_category(k, v)
-      @path = File.join(dir_category, "#{k}.html")
-      @page = Page.new
-      @page.setup_category("#{k.capitalize}", "Word: #{k.capitalize}")
-      v.each{|x|
-        @page.div_e.add_element(x)
-        @page.div_e.add_text("\n")
-      }
-      @data = @page.doc
-      save
-    end
-  end
-  class Archives < Page
-    def base
-      set_hash
-      @hash_year.each{|k,v| data_archive(k, v)}
-    end
-    private
-    def data_archive(k, v)
-      @path = File.join(dir_archive, "#{k}.html")
-      @page = Page.new
-      @page.setup_archives("BlogArchives","Year: #{k}")
-      v.each{|x|
-        @page.div_e.add_element(x)
-        @page.div_e.add_text("\n")
-      }
-      @data = @page.doc
-      save
+    def set_index_category_ea(k, v)
+      ea = @ep.add_element("a")
+      ea.add_attributes("href"=>v)
+      ea.text = k
+      return ea
     end
   end
   class LinkToEntry
-    attr_reader :ep, :ary
+    attr_reader :ep
     def initialize(e, dir_ca)
-      @e = e
       @dir_ca = dir_ca
-      @ary = DivEntryHeader.new(@e, @dir_ca).set_ary_category
-      @hn = e.hostname
-      @pubd, @uri, @title = @e.published, @e.uri, @e.title
+      @pubd, @title, @uri_rel = e.published, e.title, e.uri_rel
+      @h = e.hash_category
       @ep = REXML::Element.new("p")
-      @ea = @ep.add_element("a")
+      @deh = DivEntryHeader.new(e, @dir_ca)
       setup
     end
     private
     def setup
-      @ea.add_attributes({"href"=>@e.uri_rel})
-      @ea.text = "#{Time.parse(@pubd).strftime("%Y-%m-%d")}\s|\s#{@title}"
-      return nil unless @ary
+      ea = @ep.add_element("a")
+      ea.add_attributes({"href"=>@uri_rel})
+      ea.text = "#{Time.parse(@pubd).strftime("%Y-%m-%d")}\s|\s#{@title}"
+      return nil unless @h
       link_category
     end
     def link_category
       @ep.add_text("\s(")
-      @ary.each_with_index{|x,n|
-        @ep.add_text("\s,\s") unless n == 0
-        ea = @ep.add_element("a")
-        url = File.join(@dir_ca, "#{x}.html")
-        ea.add_attributes({"href"=>url})
-        ea.text = x.capitalize
-      }
-      @ep.add_text(")")
+      @deh.setup_link(@ep)
+      @ep.add_text("\s)")
     end
   end
   #end of module
