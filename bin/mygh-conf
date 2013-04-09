@@ -20,7 +20,6 @@ module MyGhBlog
       #'/path/to/tmp'
     end
     #def tag_base
-    #  'http://' + hostname + '/'
     #end
     #---------------------------------
     def draftdir
