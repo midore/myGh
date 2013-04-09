@@ -1,4 +1,4 @@
-#!usr/bin/ruby
+#!/path/to/ruby
 # coding: utf-8
 #---------------------------------------------------------------------
 # mygh-run.rb
@@ -9,16 +9,19 @@ module MyGhBlog
     def initialize
       conf_path = "/path/to/mygh-conf"
       unless File.exist?(conf_path)
-        print "Error: Not exist conf file path\n"
-        exit
+        print "Error: Not exist mygh-conf\n"; exit
       end
       load(conf_path)
     end
   end
   class Start
     def initialize
-      #dir = File.dirname(File.dirname(File.expand_path($PROGRAM_NAME)))
-      #$LOAD_PATH.push(File.join(dir, 'lib'))
+      if RUBY_VERSION < "1.9"
+        print "Error: Ruby Version\n";exit
+      end
+      unless Encoding.default_external.name == 'UTF-8'
+        print "Error, LANG of default_external\n"; exit
+      end
     end
     def run
       ARGV.empty? ? exit : ARGV.delete("")
@@ -54,8 +57,6 @@ module MyGhBlog
         call_class_index
       when /page/
         call_class_page
-      when /import/
-        call_class_import
       end
     end
     def call_class_view
@@ -86,13 +87,9 @@ module MyGhBlog
       case str
       when 'word'
         IndexAll.new.page_word
-        #Category.new.base
       when 'year'
-        #Archives.new.base
         IndexAll.new.page_year
       when 'all'
-        #Archives.new.base
-        #Category.new.base
       end
     end
     def call_class_index
@@ -102,24 +99,13 @@ module MyGhBlog
       case opt
       when 'blog'
         IndexAll.new.index_blog
-        #PageIndex.new.base
       when 'year'
         IndexAll.new.index_year
-        #ArchivesIndex.new.base
       when 'word'
         IndexAll.new.index_word
-        #CategoryIndex.new.base
       when 'all'
         IndexAll.new.all
       end
-    end
-    def call_class_import
-      d = @h[:import]
-      return nil unless d
-      return nil unless Dir.exist?(d)
-      Entry.send(:include, $MYGHBLOG)
-      Page.send(:include, $MYGHBLOG)
-      Import.new(d)
     end
   end
   class CheckConf
