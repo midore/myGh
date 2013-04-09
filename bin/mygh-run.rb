@@ -85,12 +85,14 @@ module MyGhBlog
       Page.send(:include, $MYGHBLOG)
       case str
       when 'word'
-        Category.new.base
+        IndexAll.new.page_word
+        #Category.new.base
       when 'year'
-        Archives.new.base
+        #Archives.new.base
+        IndexAll.new.page_year
       when 'all'
-        Archives.new.base
-        Category.new.base
+        #Archives.new.base
+        #Category.new.base
       end
     end
     def call_class_index
@@ -99,15 +101,16 @@ module MyGhBlog
       Page.send(:include, $MYGHBLOG)
       case opt
       when 'blog'
-        PageIndex.new.base
+        IndexAll.new.index_blog
+        #PageIndex.new.base
       when 'year'
-        ArchivesIndex.new.base
+        IndexAll.new.index_year
+        #ArchivesIndex.new.base
       when 'word'
-        CategoryIndex.new.base
+        IndexAll.new.index_word
+        #CategoryIndex.new.base
       when 'all'
-        PageIndex.new.base
-        ArchivesIndex.new.base
-        CategoryIndex.new.base
+        IndexAll.new.all
       end
     end
     def call_class_import
