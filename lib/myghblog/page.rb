@@ -11,12 +11,8 @@ module MyGhBlog
       @page_category = page_category
       @page_archive = page_archive
       @div_e = get_entries
-      @dir = postdir
       @dir_ca = dir_category.gsub(publicdir, '.')
       @dir_ar = dir_archive.gsub(publicdir, '.')
-      @yk, @ya = nil, Array.new
-      @hash_word, @hash_wordindex, @hash_year = Hash.new, Hash.new, Hash.new
-      @arr_entry = Array.new
     end
     def setup_category(title, h2)
       set_title(title)
@@ -85,6 +81,26 @@ module MyGhBlog
       ea.text = str
       return ep
     end
+  end
+  class PageEntry < Page
+    def entry_page(e)
+      set_title(e.title)
+      set_nn
+      @div_e.add_element(entry_div(e))
+      set_nn
+      return @doc
+    end
+  end
+  class HashEntries
+    attr_reader :arr_entry, :hash_word, :hash_wordindex, :hash_year
+    def initialize(dir, dir_ca)
+      @dir, @dir_ca = dir, dir_ca
+      @arr_entry = Array.new
+      @hash_word, @hash_wordindex = Hash.new, Hash.new
+      @hash_year = Hash.new
+      @yk, @ya = nil, Array.new
+      set_hash
+    end
     def set_hash
       Find.find(@dir).entries.sort.reverse.each{|f|
         next unless File.file?(f)
@@ -114,7 +130,7 @@ module MyGhBlog
       @hash_word[k].push(ep)
     end
     def set_year_h(f, ep)
-      yk =  f.match(/\d{4}/)[0]
+      yk = f.match(/\d{4}/)[0]
       unless @yk == yk
         @yk, @ya = yk, Array.new
       end
@@ -122,36 +138,10 @@ module MyGhBlog
       @hash_year[@yk] = @ya
     end
   end
-  class PageEntry < Page
-    def entry_page(e)
-      set_title(e.title)
-      set_nn
-      @div_e.add_element(entry_div(e))
-      set_nn
-      return @doc
-    end
-  end
-  class IndexAll < Page
-    def all
-      set_hash
-      index_blog
-      index_year
-      index_word
-      page_word
-      page_year
-    end
-    def category
-      set_hash
-      index_word
-      page_word
-    end
-    def archives
-      set_hash
-      index_year
-      page_year
-    end
+  class BlogIndexPage < Page
+    attr_writer :arr_entry
     def index_blog
-      set_hash if @arr_entry.empty?
+      return nil unless @arr_entry
       @path = @page_index
       set_title("Blog")
       n = 0
@@ -166,42 +156,20 @@ module MyGhBlog
       @data = @doc
       save
     end
+  end
+  class CategoryPage < Page
+    attr_writer :hash_word, :hash_wordindex
     def index_word
-      set_hash if @hash_wordindex.empty?
+      return nil unless @hash_wordindex
       @doc = REXML::Document.new(IO.read(tplhtml))
       @path = @page_category
       setup_category("Category","Blog Category")
       @ep, @kw = nil, nil
-      n = 0
-      @hash_wordindex.sort.each{|k,v|
-        unless @kw == k[0]
-          @ep = REXML::Element.new("p").add_text("\s|\s")
-          @div_e.add_element(@ep)
-          set_n
-          @kw = k[0]
-          n += 1
-        end
-        set_index_category_ea(k, v)
-        @ep.add_text("\s|\s")
-      }
-      @data = @doc
-      save
-    end
-    def index_year
-      set_hash if @hash_year.empty?
-      @doc = REXML::Document.new(IO.read(tplhtml))
-      @path = @page_archive
-      setup_archives("Archives","Blog Archives")
-      @hash_year.keys.each{|k|
-        ep = set_index_year_ep(k)
-        @div_e.add_text("\t")
-        @div_e.add_element(ep)
-      }
-      @data = @doc
+      set_index_word_data
       save
     end
     def page_word
-      set_hash if @hash_word.empty?
+      return unless @hash_word
       @hash_word.each{|k,v|
         @path = File.join(dir_category, "#{k.downcase}.html")
         @page = Page.new
@@ -214,8 +182,46 @@ module MyGhBlog
         save
       }
     end
+    private
+    def set_index_word_data
+      n = 0
+      @hash_wordindex.sort.each{|k,v|
+        unless @kw == k[0]
+          @ep = REXML::Element.new("p").add_text("\s|\s")
+          @div_e.add_element(@ep)
+          set_n
+          @kw = k[0]
+          n += 1
+        end
+        set_index_word_ea(k, v)
+        @ep.add_text("\s|\s")
+      }
+      @data = @doc
+    end
+    def set_index_word_ea(k, v)
+      ea = @ep.add_element("a")
+      ea.add_attributes("href"=>v)
+      ea.text = k
+      return ea
+    end
+  end
+  class ArchivesPage < Page
+    attr_writer :hash_year
+    def index_year
+      return nil unless @hash_year
+      @doc = REXML::Document.new(IO.read(tplhtml))
+      @path = @page_archive
+      setup_archives("Archives","Blog Archives")
+      @hash_year.keys.each{|k|
+        ep = set_index_year_ep(k)
+        @div_e.add_text("\t")
+        @div_e.add_element(ep)
+      }
+      @data = @doc
+      save
+    end
     def page_year
-      set_hash if @hash_year.empty?
+      return nil unless @hash_year
       @hash_year.each{|k,v|
         @path = File.join(dir_archive, "#{k}.html")
         @page = Page.new
@@ -228,15 +234,51 @@ module MyGhBlog
         save
       }
     end
+    private
     def set_index_year_ep(k)
       u = File.join(@dir_ar, "#{k}.html")
       new_plink(u, k.capitalize)
     end
-    def set_index_category_ea(k, v)
-      ea = @ep.add_element("a")
-      ea.add_attributes("href"=>v)
-      ea.text = k
-      return ea
+  end
+  class IndexAll
+    def initialize
+      @dir = postdir
+      @dir_ca = dir_category.gsub(publicdir, '.')
+      he = HashEntries.new(@dir, @dir_ca)
+      @hash_year = he.hash_year
+      @hash_word = he.hash_word
+      @hash_wordindex = he.hash_wordindex
+      @arr_entry = he.arr_entry
+    end
+    def pages_category
+      doc = CategoryPage.new()
+      doc.hash_wordindex = @hash_wordindex
+      doc.index_word
+      doc.hash_word = @hash_word
+      doc.page_word
+    end
+    def page_current_year
+      #doc = ArchivesPage.new()
+    end
+    def pages_archives
+      doc = ArchivesPage.new()
+      doc.hash_year = @hash_year
+      doc.index_year
+      doc.page_year
+    end
+    def page_blogindex
+      doc = BlogIndexPage.new()
+      doc.arr_entry = @arr_entry
+      doc.index_blog
+    end
+    def daily
+      page_blogindex
+      pages_category
+    end
+    def all
+      page_blogindex
+      pages_category
+      pages_archives
     end
   end
   class LinkToEntry
