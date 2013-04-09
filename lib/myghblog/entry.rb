@@ -27,6 +27,21 @@ module MyGhBlog
       return nil unless @uri_rel
       PageEntry.new().entry_page(self)
     end
+    def hash_category
+      return nil if @category.empty?
+      h = Hash.new
+      @category.split(',').map{|x|
+        next unless x.ascii_only?
+        x = x.strip
+        next if x.empty?
+        y = x.downcase
+        next if /\W|[0-9]|import|test|^x$/.match(y)
+        x = x.capitalize unless x[0].match(/[A-Z]/)
+        h[x] = y
+      }
+      return nil if h.size == 0
+      return h
+    end
     private
     def check_error
       msg = "Error: content is empty.\n#{@path_text}\n"
@@ -64,7 +79,7 @@ module MyGhBlog
       return @fn
     end
     def set_uri
-      @uri = File.join(@uri_blog, @year, @month, @fn)
+      @uri ||= File.join(@uri_blog, @year, @month, @fn)
     end
     def set_uri_rel
       @uri_rel = @uri.gsub("#{@hostname}",'.')
@@ -199,15 +214,20 @@ module MyGhBlog
     end
     def view_xhtml
       @path_html = get_path_html
-      unless @uri
+      if @edited == '-'
+        draft_view_xhtml unless @uri
+        set_uri_rel if @uri
+        return print to_xml
+      elsif @edited == '+'
+        return print IO.read(@path_html)
+      end
+    end
+    def draft_view_xhtml
         set_base_time
         set_pub_date
         set_html_fname
         set_uri
         set_uri_rel
-        p self;exit
-        return print to_xml
-      end
     end
     def view_detail
       @path_html = get_path_html
