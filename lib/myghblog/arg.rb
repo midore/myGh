@@ -36,10 +36,8 @@ module MyGhBlog
       {
         :h=>"this help",
         :l=>"-l [ draft|post ]",
-        :draft=>"-draft [ new|pathto/file ]",
-        :index=>"-index [ blog|word|year ]",
-        :page=>"-page [ word|year ]",
-        :import=>"-import [pathto/dir]"
+        :draft=>"-draft",
+        :index=>"-index [ days|blog|word|year|all ]",
       }
     end
   end
