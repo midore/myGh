@@ -10,37 +10,28 @@ module MyGhBlog
       ev = DivEntryHeader.new(@e, @dir_ca)
       @eleroot, @elehead, @ele = ev.eleroot, ev.elehead, ev.ele
       @doc = DivEntryContent.new(@e, @eleroot, @ele).base
+      @doc.add_text("\n")
     end
   end
   class DivEntryHeader
     attr_accessor :eleroot, :elehead, :ele
     def initialize(e, dir_ca)
-      @e = e
       @dir_ca = dir_ca
-      @ary_category = set_ary_category
+      @title = e.title
+      @published = e.published
+      @uri_rel = e.uri_rel
+      @hash_category = e.hash_category
       div1 = REXML::Element.new("div")
-      div1.add_text("\n")
       div1.add_attributes({"id"=>"entry"})
-      #div1.add_text("\n")
+      div1.add_text("\n")
       div2 = attrset(div1, "div", ["id","entry_header"])
       div1.add_text("\n")
-      #div1.add_text("\n")
+      div2.add_text("\n")
       div3 = attrset(div1, "div", ["id","entry_content"])
-      #div1.add_text("\n")
       @eleroot, @elehead, @ele = div1, div2, div3
       setup_header
+      div2.add_text("\n")
     end
-    def set_ary_category
-      return nil if @e.category.empty?
-      a = @e.category.split(',').map{|x|
-        next unless x.ascii_only?
-        x = x.strip.downcase
-        x unless /import|test|^x$/.match(x)
-      }.compact
-      return nil if a.size == 0
-      return a
-    end
-    private
     def attrset(e, str, a)
       ae = e.add_element(str)
       ae.add_attributes({a[0]=>a[1]})
@@ -48,26 +39,29 @@ module MyGhBlog
     end
     def setup_header
       # entry_title
-      h3 = attrset(@elehead,"h3",["class","entry_title"])
-      a = attrset(h3, 'a', ['href',@e.uri_rel])
-      a.text = @e.title
+      h3 = attrset(@elehead, "h3", ["class", "entry_title"])
+      a = attrset(h3, 'a', ['href',@uri_rel])
+      a.text = @title
       # entry_published
-      h3 = attrset(@elehead, "h3", ["class","entry_published"])
-      h3.text = Time.parse(@e.published).strftime("%Y-%m-%d")
+      h3 = attrset(@elehead, "h3", ["class", "entry_published"])
+      h3.text = Time.parse(@published).strftime("%Y-%m-%d")
       # entry_category
       setup_category
     end
     def setup_category
-      return nil unless @ary_category
-      h3 = attrset(@elehead,"h3",["class","entry_category"])
-      @n = 0
-      @ary_category.each{|v|
-        str = v.downcase
-        h3.add_text("\s|\s") unless @n == 0
-        a = attrset(h3, 'a', ['href', File.join(@dir_ca, "#{str}.html")])
-        a.text = str.capitalize
-        @n += 1
+      return nil unless @hash_category
+      h3 = attrset(@elehead, "h3", ["class", "entry_category"])
+      setup_link(h3)
+    end
+    def setup_link(ele)
+      n = 0
+      @hash_category.each{|k,v|
+        ele.add_text("\s|\s") unless n == 0
+        a = attrset(ele, 'a', ['href', File.join(@dir_ca, "#{v}.html")])
+        a.text = k
+        n += 1
       }
+      return ele
     end
   end
   class DivEntryContent
@@ -80,7 +74,6 @@ module MyGhBlog
     def base
       setup_content
       @ele.add_text("\n")
-      @eleroot.add_text("\n")
       return @eleroot
     end
     private
