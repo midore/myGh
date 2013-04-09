@@ -333,33 +333,3 @@ module MyGhBlog
   #end of module
 end
 
-=begin
-  class ImportEntryDraft < PostEntry
-    attr_reader :title, :published, :uri_rel, :content, :category, :uri, :url,:edit_id
-    def set_ins
-      @updated = Time.now
-      @t = Time.parse(@published)
-      @year, @month, @day = @t.strftime("%Y,%m,%d").split(',')
-      p @fn = "#{@day}_#{@edit_id}.html"
-    end
-    def set_path_text
-      str = Time.parse(@published).strftime("%Y-%m-%dT%H-%M-%S")
-      @path_text = File.join(draftdir, "#{@year}-#{@month}", "#{str}.txt")
-    end
-  end
-  class ImportEntryPost < ImportEntryDraft
-    attr_reader :title, :published, :uri_rel, :content, :category, :uri,
-      :edit_id, :path_html
-    def post_entry
-      set_base
-      set_data_html
-      set_data_text
-      exit unless save_html
-      exit unless save_text
-    end
-    def set_path_text
-      str = Time.parse(@published).strftime("%Y-%m-%dT%H-%M-%S")
-      @path_text = File.join(postdir, "#{@year}-#{@month}", "#{str}.txt")
-    end
-  end
-=end
