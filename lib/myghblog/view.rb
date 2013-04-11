@@ -136,7 +136,6 @@ module MyGhBlog
       end
     end
   end
-
   class Select
     def base(str, opt)
       return false unless $stdin.tty?
