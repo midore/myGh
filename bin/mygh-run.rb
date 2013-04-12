@@ -55,8 +55,6 @@ module MyGhBlog
         call_class_draft
       when /index/
         call_class_index
-      when /page/
-        call_class_page
       end
     end
     def call_class_view
@@ -78,18 +76,6 @@ module MyGhBlog
         Draft.new().newentry
       else
         Draft.new().newentry
-      end
-    end
-    def call_class_page
-      str = @h[:page]
-      Entry.send(:include, $MYGHBLOG)
-      Page.send(:include, $MYGHBLOG)
-      case str
-      when 'word'
-        IndexAll.new.page_word
-      when 'year'
-        IndexAll.new.page_year
-      when 'all'
       end
     end
     def call_class_index
